@@ -10,6 +10,31 @@
 #import "DetailViewController.h"
 #import <SDWebImage/SDWebImage.h>
 
+
+
+@interface MasterSDUnit : NSObject <SDWebImagePluginProtocol>
+
+@end
+
+@implementation MasterSDUnit
+
+- (NSString *)firstDownloadFailWithUrl:(NSURL *)url {
+    NSLog(@"\n [First Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", url, @"");
+    return @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage223/default.aspx?0.35786508303135633";
+}
+
+- (void)downloadSuccessWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl {
+    NSLog(@"\n [Download Success]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, decodeUrl);
+}
+
+- (nonnull void *)reDownloadFailWithOriginUrl:(nonnull NSURL *)originUrl decodeUrl:(nonnull NSURL *)decodeUrl {
+    NSLog(@"\n [Re Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, originUrl);
+    return @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage223/default.aspx?0.35786508303135633";
+}
+
+
+@end
+
 @interface MyCustomTableViewCell : UITableViewCell
 
 @property (nonatomic, strong) UILabel *customTextLabel;
@@ -36,6 +61,7 @@
 
 @interface MasterViewController ()
 
+@property (nonatomic, strong) MasterSDUnit *unit;
 @property (nonatomic, strong) NSMutableArray<NSString *> *objects;
 
 @end
@@ -51,6 +77,9 @@
                                                                                target:self
                                                                                action:@selector(flushCache)];
         
+        self.unit = [[MasterSDUnit alloc] init];
+        SDWebImagePluginManager.shareManager.pluginDelegate = self.unit;
+        
         // HTTP NTLM auth example
         // Add your NTLM image url to the array below and replace the credentials
         [SDWebImageDownloader sharedDownloader].config.username = @"httpwatch";
@@ -59,27 +88,27 @@
         [SDWebImageDownloader sharedDownloader].config.executionOrder = SDWebImageDownloaderLIFOExecutionOrder;
         
         self.objects = [NSMutableArray arrayWithObjects:
-                    @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage/default.aspx?0.35786508303135633",     // requires HTTP auth, used to demo the NTLM auth
-                    @"http://assets.sbnation.com/assets/2512203/dogflops.gif",
-                    @"https://raw.githubusercontent.com/liyong03/YLGIFImage/master/YLGIFImageDemo/YLGIFImageDemo/joy.gif",
-                    @"http://apng.onevcat.com/assets/elephant.png",
-                    @"http://www.ioncannon.net/wp-content/uploads/2011/06/test2.webp",
-                    @"http://www.ioncannon.net/wp-content/uploads/2011/06/test9.webp",
-                    @"http://littlesvr.ca/apng/images/SteamEngine.webp",
-                    @"http://littlesvr.ca/apng/images/world-cup-2014-42.webp",
-                    @"https://isparta.github.io/compare-webp/image/gif_webp/webp/2.webp",
-                    @"https://nokiatech.github.io/heif/content/images/ski_jump_1440x960.heic",
-                    @"https://nokiatech.github.io/heif/content/image_sequences/starfield_animation.heic",
-                    @"https://s2.ax1x.com/2019/11/01/KHYIgJ.gif",
-                    @"https://raw.githubusercontent.com/icons8/flat-color-icons/master/pdf/stack_of_photos.pdf",
-                    @"https://nr-platform.s3.amazonaws.com/uploads/platform/published_extension/branding_icon/275/AmazonS3.png",
-                    @"http://via.placeholder.com/200x200.jpg",
+                    @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage123/default.aspx?0.35786508303135633",     // requires HTTP auth, used to demo the NTLM auth
+//                    @"http://assets.sbnation.com/assets/2512203/dogflops.gif",
+//                    @"https://raw.githubusercontent.com/liyong03/YLGIFImage/master/YLGIFImageDemo/YLGIFImageDemo/joy1.gif",
+//                    @"http://apng.onevcat.com/assets/elephant2.png",
+//                    @"http://www.ioncannon.net/wp-content/uploads/2011/06/test2.webp",
+//                    @"http://www.ioncannon.net/wp-content/uploads/2011/06/test9.webp",
+//                    @"http://littlesvr.ca/apng/images/SteamEngine.webp",
+//                    @"http://littlesvr.ca/apng/images/world-cup-2014-42.webp",
+//                    @"https://isparta.github.io/compare-webp/image/gif_webp/webp/2.webp",
+//                    @"https://nokiatech.github.io/heif/content/images/ski_jump_1440x960.heic",
+//                    @"https://nokiatech.github.io/heif/content/image_sequences/starfield_animation.heic",
+//                    @"https://s2.ax1x.com/2019/11/01/KHYIgJ.gif",
+//                    @"https://raw.githubusercontent.com/icons8/flat-color-icons/master/pdf/stack_of_photos.pdf",
+//                    @"https://nr-platform.s3.amazonaws.com/uploads/platform/published_extension/branding_icon/275/AmazonS3.png",
+//                    @"http://via.placeholder.com/200x200.jpg",
                     nil];
 
-        for (int i=1; i<25; i++) {
-            // From http://r0k.us/graphics/kodak/, 768x512 resolution, 24 bit depth PNG
-            [self.objects addObject:[NSString stringWithFormat:@"http://r0k.us/graphics/kodak/kodak/kodim%02d.png", i]];
-        }
+//        for (int i=1; i<25; i++) {
+//            // From http://r0k.us/graphics/kodak/, 768x512 resolution, 24 bit depth PNG
+//            [self.objects addObject:[NSString stringWithFormat:@"http://r0k.us/graphics/kodak/kodak/kodim%02d.png", i]];
+//        }
     }
     return self;
 }
@@ -137,4 +166,10 @@
     [self.navigationController pushViewController:detailViewController animated:YES];
 }
 
+
+
+
 @end
+
+
+

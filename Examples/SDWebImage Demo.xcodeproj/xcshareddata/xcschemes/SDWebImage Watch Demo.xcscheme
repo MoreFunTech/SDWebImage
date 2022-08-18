@@ -69,8 +69,10 @@
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
       notificationPayloadFile = "SDWebImage Watch Demo Extension/PushNotificationPayload.apns">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <RemoteRunnable
+         runnableDebuggingMode = "2"
+         BundleIdentifier = "com.apple.Carousel"
+         RemotePath = "/SDWebImage iOS Demo">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "43A629ED1D0E07600089D7DD"
@@ -78,7 +80,7 @@
             BlueprintName = "SDWebImage Watch Demo"
             ReferencedContainer = "container:SDWebImage Demo.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </RemoteRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -86,8 +88,10 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <RemoteRunnable
+         runnableDebuggingMode = "2"
+         BundleIdentifier = "com.apple.Carousel"
+         RemotePath = "/SDWebImage iOS Demo">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "43A629ED1D0E07600089D7DD"
@@ -95,7 +99,16 @@
             BlueprintName = "SDWebImage Watch Demo"
             ReferencedContainer = "container:SDWebImage Demo.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </RemoteRunnable>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "43A629ED1D0E07600089D7DD"
+            BuildableName = "SDWebImage Watch Demo.app"
+            BlueprintName = "SDWebImage Watch Demo"
+            ReferencedContainer = "container:SDWebImage Demo.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

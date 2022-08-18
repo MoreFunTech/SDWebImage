@@ -138,6 +138,7 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
         };
         @weakify(self);
         operation = [manager loadImageWithURL:url options:options context:context progress:combinedProgressBlock completed:^(UIImage *image, NSData *data, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+//            NSLog(@" \n [image: %@] \n [error: %@] \n [cacheType: %ld] \n [finished: %d] \n [imageUrl: %@] \n ", image, error.localizedDescription, cacheType, finished, imageURL);
             @strongify(self);
             if (!self) { return; }
             // if the progress not been updated, mark it to complete state

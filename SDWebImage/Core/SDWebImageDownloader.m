@@ -6,11 +6,13 @@
  * file that was distributed with this source code.
  */
 
+#import <Foundation/Foundation.h>
 #import "SDWebImageDownloader.h"
 #import "SDWebImageDownloaderConfig.h"
 #import "SDWebImageDownloaderOperation.h"
 #import "SDWebImageError.h"
 #import "SDInternalMacros.h"
+#import "SDWebImagePluginManager.h"
 
 NSNotificationName const SDWebImageDownloadStartNotification = @"SDWebImageDownloadStartNotification";
 NSNotificationName const SDWebImageDownloadReceiveResponseNotification = @"SDWebImageDownloadReceiveResponseNotification";
@@ -229,8 +231,25 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
             SD_UNLOCK(self->_operationsLock);
         };
         self.URLOperations[url] = operation;
+        __weak typeof(self) weakSelf = self;
         // Add the handlers before submitting to operation queue, avoid the race condition that operation finished before setting handlers.
-        downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];
+        downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished) {
+            if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:)]) {
+                if (!error) {
+                    completedBlock(image, data, error, finished);
+                    return;
+                }
+                NSString *decodeUrlStr = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
+                NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
+                if (!decodeUrl) {
+                    completedBlock(image, data, error, finished);
+                    return;
+                }
+                [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
+                return;
+            }
+            completedBlock(image, data, error, finished);
+        }];
         // Add operation to operation queue only after all configuration done according to Apple's doc.
         // `addOperation:` does not synchronously execute the `operation.completionBlock` so this will not cause deadlock.
         [self.downloadQueue addOperation:operation];
@@ -238,7 +257,26 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
         // When we reuse the download operation to attach more callbacks, there may be thread safe issue because the getter of callbacks may in another queue (decoding queue or delegate queue)
         // So we lock the operation here, and in `SDWebImageDownloaderOperation`, we use `@synchonzied (self)`, to ensure the thread safe between these two classes.
         @synchronized (operation) {
-            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];
+//            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];
+            
+            __weak typeof(self) weakSelf = self;
+            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished) {
+                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:)]) {
+                    if (!error) {
+                        completedBlock(image, data, error, finished);
+                        return;
+                    }
+                    NSString *decodeUrlStr = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
+                    NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
+                    if (!decodeUrl) {
+                        completedBlock(image, data, error, finished);
+                        return;
+                    }
+                    [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
+                    return;
+                }
+                completedBlock(image, data, error, finished);
+            }];
         }
         if (!operation.isExecuting) {
             if (options & SDWebImageDownloaderHighPriority) {
@@ -254,6 +292,117 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
     
     SDWebImageDownloadToken *token = [[SDWebImageDownloadToken alloc] initWithDownloadOperation:operation];
     token.url = url;
+    token.request = operation.request;
+    token.downloadOperationCancelToken = downloadOperationCancelToken;
+    
+    return token;
+}
+
+- (nullable SDWebImageDownloadToken *)reDownloadImageWithOriginURL:(nullable NSURL *)originUrl
+                                                         decideUrl:(nullable NSURL *)decodeUrl
+                                                   options:(SDWebImageDownloaderOptions)options
+                                                   context:(nullable SDWebImageContext *)context
+                                                  progress:(nullable SDWebImageDownloaderProgressBlock)progressBlock
+                                                 completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock {
+    // The URL will be used as the key to the callbacks dictionary so it cannot be nil. If it is nil immediately call the completed block with no image or data.
+    if (originUrl == nil) {
+        if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(reDownloadFailWithOriginUrl:decodeUrl:)]) {
+            [SDWebImagePluginManager.shareManager.pluginDelegate reDownloadFailWithOriginUrl:originUrl decodeUrl:decodeUrl];
+        }
+        if (completedBlock) {
+            NSError *error = [NSError errorWithDomain:SDWebImageErrorDomain code:SDWebImageErrorInvalidURL userInfo:@{NSLocalizedDescriptionKey : @"OriginUrl is nil"}];
+            completedBlock(nil, nil, error, YES);
+        }
+        return nil;
+    }
+    
+    if (originUrl == nil) {
+        if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(reDownloadFailWithOriginUrl:decodeUrl:)]) {
+            [SDWebImagePluginManager.shareManager.pluginDelegate reDownloadFailWithOriginUrl:originUrl decodeUrl:decodeUrl];
+        }
+        if (completedBlock) {
+            NSError *error = [NSError errorWithDomain:SDWebImageErrorDomain code:SDWebImageErrorInvalidURL userInfo:@{NSLocalizedDescriptionKey : @"DecodeUrl is nil"}];
+            completedBlock(nil, nil, error, YES);
+        }
+        return nil;
+    }
+    
+    
+    SD_LOCK(_operationsLock);
+    id downloadOperationCancelToken;
+    NSOperation<SDWebImageDownloaderOperation> *operation = [self.URLOperations objectForKey:decodeUrl];
+    // There is a case that the operation may be marked as finished or cancelled, but not been removed from `self.URLOperations`.
+    if (!operation || operation.isFinished || operation.isCancelled) {
+        operation = [self createDownloaderOperationWithUrl:decodeUrl options:options context:context];
+        if (!operation) {
+            SD_UNLOCK(_operationsLock);
+            if (completedBlock) {
+                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(reDownloadFailWithOriginUrl:decodeUrl:)]) {
+                    [SDWebImagePluginManager.shareManager.pluginDelegate reDownloadFailWithOriginUrl:originUrl decodeUrl:decodeUrl];
+                }
+                NSError *error = [NSError errorWithDomain:SDWebImageErrorDomain code:SDWebImageErrorInvalidDownloadOperation userInfo:@{NSLocalizedDescriptionKey : @"Downloader operation is nil"}];
+                completedBlock(nil, nil, error, YES);
+            }
+            return nil;
+        }
+        @weakify(self);
+        operation.completionBlock = ^{
+            @strongify(self);
+            if (!self) {
+                return;
+            }
+            SD_LOCK(self->_operationsLock);
+            [self.URLOperations removeObjectForKey:decodeUrl];
+            SD_UNLOCK(self->_operationsLock);
+        };
+        self.URLOperations[decodeUrl] = operation;
+        // Add the handlers before submitting to operation queue, avoid the race condition that operation finished before setting handlers.
+        downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished) {
+            if (!error) {
+                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(downloadSuccessWithOriginUrl:decodeUrl:)]) {
+                    [SDWebImagePluginManager.shareManager.pluginDelegate downloadSuccessWithOriginUrl:originUrl decodeUrl:decodeUrl];
+                }
+            } else {
+                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(reDownloadFailWithOriginUrl:decodeUrl:)]) {
+                    [SDWebImagePluginManager.shareManager.pluginDelegate reDownloadFailWithOriginUrl:originUrl decodeUrl:decodeUrl];
+                }
+            }
+            completedBlock(image, data, error, finished);
+        }];
+        // Add operation to operation queue only after all configuration done according to Apple's doc.
+        // `addOperation:` does not synchronously execute the `operation.completionBlock` so this will not cause deadlock.
+        [self.downloadQueue addOperation:operation];
+    } else {
+        // When we reuse the download operation to attach more callbacks, there may be thread safe issue because the getter of callbacks may in another queue (decoding queue or delegate queue)
+        // So we lock the operation here, and in `SDWebImageDownloaderOperation`, we use `@synchonzied (self)`, to ensure the thread safe between these two classes.
+        @synchronized (operation) {
+            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished) {
+                if (!error) {
+                    if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(downloadSuccessWithOriginUrl:decodeUrl:)]) {
+                        [SDWebImagePluginManager.shareManager.pluginDelegate downloadSuccessWithOriginUrl:originUrl decodeUrl:decodeUrl];
+                    }
+                } else {
+                    if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(reDownloadFailWithOriginUrl:decodeUrl:)]) {
+                        [SDWebImagePluginManager.shareManager.pluginDelegate reDownloadFailWithOriginUrl:originUrl decodeUrl:decodeUrl];
+                    }
+                }
+                completedBlock(image, data, error, finished);
+            }];
+        }
+        if (!operation.isExecuting) {
+            if (options & SDWebImageDownloaderHighPriority) {
+                operation.queuePriority = NSOperationQueuePriorityHigh;
+            } else if (options & SDWebImageDownloaderLowPriority) {
+                operation.queuePriority = NSOperationQueuePriorityLow;
+            } else {
+                operation.queuePriority = NSOperationQueuePriorityNormal;
+            }
+        }
+    }
+    SD_UNLOCK(_operationsLock);
+    
+    SDWebImageDownloadToken *token = [[SDWebImageDownloadToken alloc] initWithDownloadOperation:operation];
+    token.url = decodeUrl;
     token.request = operation.request;
     token.downloadOperationCancelToken = downloadOperationCancelToken;
     
