@@ -408,7 +408,7 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
     SD_UNLOCK(_operationsLock);
     
     SDWebImageDownloadToken *token = [[SDWebImageDownloadToken alloc] initWithDownloadOperation:operation];
-    token.url = decodeUrl;
+    token.url = originUrl;
     token.request = operation.request;
     token.downloadOperationCancelToken = downloadOperationCancelToken;
     

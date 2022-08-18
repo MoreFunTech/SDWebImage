@@ -39,9 +39,8 @@
     NSLog(@"\n [Download Success]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, decodeUrl);
 }
 
-- (nonnull void *)reDownloadFailWithOriginUrl:(nonnull NSURL *)originUrl decodeUrl:(nonnull NSURL *)decodeUrl {
+- (void)reDownloadFailWithOriginUrl:(nonnull NSURL *)originUrl decodeUrl:(nonnull NSURL *)decodeUrl {
     NSLog(@"\n [Re Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, decodeUrl);
-    return @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage223/default.aspx?0.35786508303135633";
 }
 
 
@@ -116,6 +115,10 @@
 //                    @"https://nr-platform.s3.amazonaws.com/uploads/platform/published_extension/branding_icon/275/AmazonS3.png",
 //                    @"http://via.placeholder.com/200x200.jpg",
                     nil];
+        
+        for (int i = 1; i < 50; i++) {
+            [self.objects addObject:@"http://p1-q.mafengwo.net/s11/M00/B6/7B/wKgBEFt_tvGAFvHxAAFIRKQnOBw211.jpeg"];
+        }
 
 //        for (int i=1; i<25; i++) {
 //            // From http://r0k.us/graphics/kodak/, 768x512 resolution, 24 bit depth PNG
