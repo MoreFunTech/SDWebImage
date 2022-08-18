@@ -18,9 +18,21 @@
 
 @implementation MasterSDUnit
 
-- (NSString *)firstDownloadFailWithUrl:(NSURL *)url {
+- (SDWebImagePluginFirstDownloadFailureUnit *)firstDownloadFailWithUrl:(NSURL *)url {
     NSLog(@"\n [First Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", url, @"");
-    return @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage223/default.aspx?0.35786508303135633";
+    SDWebImagePluginFirstDownloadFailureUnit *unit = [[SDWebImagePluginFirstDownloadFailureUnit alloc] init];
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [weakSelf configureFirstDownloadUnitWithUrl:url unit:unit];
+    });
+    return unit;
+}
+
+- (void)configureFirstDownloadUnitWithUrl:(NSURL *)url unit:(SDWebImagePluginFirstDownloadFailureUnit *)unit {
+    NSString *decodeUrlStr = @"http://p1-q.mafengwo.net/s11/M00/B6/7B/wKgBEFt_tvGAFvHxAAFIRKQnOBw21.jpeg";
+    if (unit.redownloadReadyBlock) {
+        unit.redownloadReadyBlock(decodeUrlStr);
+    }
 }
 
 - (void)downloadSuccessWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl {
@@ -28,7 +40,7 @@
 }
 
 - (nonnull void *)reDownloadFailWithOriginUrl:(nonnull NSURL *)originUrl decodeUrl:(nonnull NSURL *)decodeUrl {
-    NSLog(@"\n [Re Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, originUrl);
+    NSLog(@"\n [Re Download Failed]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, decodeUrl);
     return @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage223/default.aspx?0.35786508303135633";
 }
 
@@ -88,7 +100,7 @@
         [SDWebImageDownloader sharedDownloader].config.executionOrder = SDWebImageDownloaderLIFOExecutionOrder;
         
         self.objects = [NSMutableArray arrayWithObjects:
-                    @"http://www.httpwatch.com/httpgallery/authentication/authenticatedimage123/default.aspx?0.35786508303135633",     // requires HTTP auth, used to demo the NTLM auth
+                    @"http://p1-q.mafengwo.net/s11/M00/B6/7B/wKgBEFt_tvGAFvHxAAFIRKQnOBw211.jpeg",     // requires HTTP auth, used to demo the NTLM auth
 //                    @"http://assets.sbnation.com/assets/2512203/dogflops.gif",
 //                    @"https://raw.githubusercontent.com/liyong03/YLGIFImage/master/YLGIFImageDemo/YLGIFImageDemo/joy1.gif",
 //                    @"http://apng.onevcat.com/assets/elephant2.png",

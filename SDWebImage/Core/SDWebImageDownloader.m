@@ -239,13 +239,16 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
                     completedBlock(image, data, error, finished);
                     return;
                 }
-                NSString *decodeUrlStr = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
-                NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
-                if (!decodeUrl) {
-                    completedBlock(image, data, error, finished);
+                SDWebImagePluginFirstDownloadFailureUnit *unit = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
+                unit.redownloadReadyBlock = ^(NSString * _Nonnull decodeUrlStr) {
+                    NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
+                    if (!decodeUrl) {
+                        completedBlock(image, data, error, finished);
+                        return;
+                    }
+                    [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
                     return;
-                }
-                [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
+                };
                 return;
             }
             completedBlock(image, data, error, finished);
@@ -266,13 +269,16 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
                         completedBlock(image, data, error, finished);
                         return;
                     }
-                    NSString *decodeUrlStr = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
-                    NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
-                    if (!decodeUrl) {
-                        completedBlock(image, data, error, finished);
+                    SDWebImagePluginFirstDownloadFailureUnit *unit = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
+                    unit.redownloadReadyBlock = ^(NSString * _Nonnull decodeUrlStr) {
+                        NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
+                        if (!decodeUrl) {
+                            completedBlock(image, data, error, finished);
+                            return;
+                        }
+                        [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
                         return;
-                    }
-                    [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
+                    };
                     return;
                 }
                 completedBlock(image, data, error, finished);

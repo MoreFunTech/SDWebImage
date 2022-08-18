@@ -9,9 +9,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+
+@interface SDWebImagePluginFirstDownloadFailureUnit : NSObject
+
+@property (nonatomic, copy) void(^redownloadReadyBlock)(NSString *decodeUrl);
+
+@end
+
 @protocol SDWebImagePluginProtocol <NSObject>
 
-- (NSString *)firstDownloadFailWithUrl:(NSURL *)url;
+- (SDWebImagePluginFirstDownloadFailureUnit *)firstDownloadFailWithUrl:(NSURL *)url;
 - (void *)reDownloadFailWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl;
 - (void)downloadSuccessWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl;
 
