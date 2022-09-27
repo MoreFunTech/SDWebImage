@@ -35,8 +35,11 @@
     }
 }
 
-- (void)downloadSuccessWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl {
+- (void)downloadSuccessWithOriginUrl:(NSURL *)originUrl decodeUrl:(NSURL *)decodeUrl data:(NSData *)data {
     NSLog(@"\n [Download Success]\n [OriginUrl: %@]\n [DecodeUrl: %@]", originUrl, decodeUrl);
+    [[SDImageCache sharedImageCache] storeImage:nil imageData:data forKey:originUrl.absoluteString cacheType:(SDImageCacheTypeAll) completion:^{
+            
+    }];
 }
 
 - (void)reDownloadFailWithOriginUrl:(nonnull NSURL *)originUrl decodeUrl:(nonnull NSURL *)decodeUrl {
@@ -117,6 +120,7 @@
                     nil];
         
         for (int i = 1; i < 50; i++) {
+            [self.objects addObject:[NSString stringWithFormat:@"http://p1-q.mafengwo.net/s11/M00/B6/7B/wKgBEFt_tvGAFvHxAAFIRKQnOBw211%d.jpeg", i]];
             [self.objects addObject:@"http://p1-q.mafengwo.net/s11/M00/B6/7B/wKgBEFt_tvGAFvHxAAFIRKQnOBw211.jpeg"];
         }
 
