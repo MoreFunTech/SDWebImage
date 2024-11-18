@@ -6,11 +6,6 @@
 //
 
 #import "SDWebImagePluginManager.h"
-    
-@implementation SDWebImagePluginFirstDownloadFailureUnit
-
-
-@end
 
 @implementation SDWebImagePluginManager
 

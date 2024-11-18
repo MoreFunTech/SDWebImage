@@ -238,20 +238,18 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
                 completedBlock(image, data, error, finished);
                 return;
             }
-            if (![SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:)]) {
+            if (![SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:redownloadReadyBlock:)]) {
                 return;
             }
             
-            SDWebImagePluginFirstDownloadFailureUnit *unit = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
-            unit.redownloadReadyBlock = ^(NSString * _Nonnull decodeUrlStr) {
+            [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url redownloadReadyBlock:^(NSString * _Nonnull decodeUrlStr) {
                 NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
                 if (!decodeUrl) {
                     completedBlock(image, data, error, finished);
                     return;
                 }
                 [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
-                return;
-            };
+            }];
         }];
         // Add operation to operation queue only after all configuration done according to Apple's doc.
         // `addOperation:` does not synchronously execute the `operation.completionBlock` so this will not cause deadlock.
@@ -264,21 +262,19 @@ static void * SDWebImageDownloaderContext = &SDWebImageDownloaderContext;
             
             __weak typeof(self) weakSelf = self;
             downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished) {
-                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:)]) {
+                if ([SDWebImagePluginManager.shareManager.pluginDelegate respondsToSelector:@selector(firstDownloadFailWithUrl:redownloadReadyBlock:)]) {
                     if (!error) {
                         completedBlock(image, data, error, finished);
                         return;
                     }
-                    SDWebImagePluginFirstDownloadFailureUnit *unit = [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url];
-                    unit.redownloadReadyBlock = ^(NSString * _Nonnull decodeUrlStr) {
+                    [SDWebImagePluginManager.shareManager.pluginDelegate firstDownloadFailWithUrl:url redownloadReadyBlock:^(NSString * _Nonnull decodeUrlStr) {
                         NSURL *decodeUrl = [NSURL URLWithString:decodeUrlStr];
                         if (!decodeUrl) {
                             completedBlock(image, data, error, finished);
                             return;
                         }
                         [weakSelf reDownloadImageWithOriginURL:url decideUrl:decodeUrl options:options context:context progress:progressBlock completed:completedBlock];
-                        return;
-                    };
+                    }];
                     return;
                 }
                 completedBlock(image, data, error, finished);
